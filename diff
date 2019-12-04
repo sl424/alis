@@ -1,0 +1,329 @@
+diff --git a/alis.sh b/home/chewie/.arch.sh
+index 3b47ba3..d22fb14 100644
+--- a/alis.sh
++++ b/home/chewie/.arch.sh
+@@ -67,7 +67,7 @@ CMDLINE_LINUX=""
+ ADDITIONAL_USER_NAMES_ARRAY=()
+ ADDITIONAL_USER_PASSWORDS_ARRAY=()
+ 
+-CONF_FILE="alis.conf"
++CONF_FILE=".arch.sh"
+ LOG_FILE="alis.log"
+ ASCIINEMA_FILE="alis.asciinema"
+ 
+@@ -76,8 +76,282 @@ GREEN='\033[0;32m'
+ LIGHT_BLUE='\033[1;34m'
+ NC='\033[0m'
+ 
++# Arch Linux Install Script (alis) configuration file
++#
++# Some values are preceded by a ! character, this means that the value is ignored.
++# Some keys accept a single value others accept multiple values as annotated in the comments.
++
++# init
++KEYS="us"
++LOG="false"
++
++# partition
++DEVICE="/dev/sda !/dev/nvme0n1 !/dev/mmcblk0" # sata nvme mmc (single)
++DEVICE_TRIM="true" # If DEVICE supports TRIM
++FILE_SYSTEM_TYPE="ext4 !btrfs !xfs" # (single)
++
++PARTITION_BOOT="${DEVICE}1"
++PARTITION_ROOT="${DEVICE}2"
++#PARTITION_BOOT_NUMBER=1
++DEVICE_ROOT="${DEVICE}2"
++
++BOOT_DIRECTORY=/boot
++ESP_DIRECTORY=/boot
++UUID_BOOT=$(blkid -s UUID -o value $PARTITION_BOOT)
++UUID_ROOT=$(blkid -s UUID -o value $PARTITION_ROOT)
++PARTUUID_BOOT=$(blkid -s PARTUUID -o value $PARTITION_BOOT)
++PARTUUID_ROOT=$(blkid -s PARTUUID -o value $PARTITION_ROOT)
++
++LVM="false" # True if use LVM for partitioning
++PARTITION_ROOT_ENCRYPTION_PASSWORD="" # LUKS encryption key, if LVM will be user LVM on LUKS. Empty for not use LUKS/encryption. Warning: change it!
++PARTITION_ROOT_ENCRYPTION_PASSWORD_RETYPE=""
++SWAP_SIZE="!2GiB !4GiB !8GiB" # (single, not supported in btrfs)
++
++# network_install
++WIFI_INTERFACE=""
++WIFI_ESSID=""
++WIFI_KEY=""
++WIFI_HIDDEN=""
++PING_HOSTNAME="mirrors.kernel.org"
++
++# install (precede with ! for not install)
++PACMAN_MIRROR="https://mirrors.kernel.org/archlinux/\$repo/os/\$arch"
++KERNELS="!linux-lts !linux-lts-headers !linux-hardened !linux-hardened-headers !linux-zen !linux-zen-headers" # Additional kernels and headers (multiple)
++KERNELS_COMPRESSION="!gzip !bzip2 !lzma !xz !lzop !lz4"
++
++# config
++TIMEZONE="/usr/share/zoneinfo/America/Phoenix"
++LOCALE="en_US.UTF-8 UTF-8"
++LANG="LANG=en_US.UTF-8"
++LANGUAGE="LANGUAGE=en_US:en"
++KEYMAP="KEYMAP=us"
++FONT="ter-v16n"
++FONT_MAP=""
++
++# root
++HOSTNAME="horizons"
++ROOT_PASSWORD="root" # Root user password. Warning: change it!
++ROOT_PASSWORD_RETYPE="root"
++
++# user
++USER_NAME="chewie"
++USER_PASSWORD="pass" # Main user password. Warning: change it!
++USER_PASSWORD_RETYPE="pass"
++
++ADDITIONAL_USER_NAMES="" # list separated by space
++ADDITIONAL_USER_PASSWORDS="" # list separated by space
++
++# bootloader
++BOOTLOADER="systemd !grub !refind !systemd" # (single)
++
++# desktop
++# none, use wayland !
++DESKTOP_ENVIRONMENT="!gnome !kde !xfce !mate !cinnamon !lxde" # (single)
++
++DISPLAY_DRIVER="intel !amdgpu !ati !nvidia !nvidia-lts !nvidia-dkms \
++	!nvidia-390xx !nvidia-390xx-lts !nvidia-390xx-dkms !nouveau" # (single)
++
++DISPLAY_DRIVER_DDX="false"
++VULKAN="false"
++
++KMS="true"
++DISPLAY_DRIVER_HARDWARE_ACCELERATION="true"
++DISPLAY_DRIVER_HARDWARE_ACCELERATION_INTEL="intel-media-driver !libva-intel-driver" # (single)
++
++# packages (all multiple) 
++
++PACKAGES_PACMAN_INTERNET="!firefox !chromium                               \
++!apache !nginx !curl !wget !filezilla !sshfs !openssh !transmission-gtk    \
++!transmission-qt !amule !geary !thunderbird !empathy !kopete !polari       \
++!konversation !liferea !hugo !gnome-boxes"                                 
++
++PACKAGES_PACMAN_MULTIMEDIA="!gthumb !gimp !imagemagick !krita !inkscape        \
++!blender !cmus !vlc !easytag !ardour !audacity !ffmpeg !gnome-phone-manager    \
++!kdeconnect !gstreamer !gst-plugins-good !gst-plugins-bad !gst-plugins-ugly    \
++!bluez !bluez-utils"                                                           
++
++PACKAGES_PACMAN_UTILITIES="!gnome-initial-setup !code !eclipse-java            \
++!intellij-idea-community-edition !gradle !maven !lz4 !meld !dosfstools         \
++!ntfs-3g !exfat-utils"
++
++PACKAGES_PACMAN_DOCUMENTS_AND_TEXT="!libreoffice-fresh !calligra !discount !lyx !vim !calibre"
++
++PACKAGES_PACMAN_SECURITY="!rsync !gnupg !keepassxc"
++
++PACKAGES_PACMAN_SCIENCE="!geogebra !octave"
++
++PACKAGES_PACMAN_OTHERS="!klavaro !tmux"
++
++PACKAGES_PACMAN_DEVELOPER="!jdk-openjdk !python !dotnet-sdk !php !rust !go  \
++!virtualbox !docker !ansible !vagrant"
++
++PACKAGES_PACMAN_CUSTOM=""
++
++AUR="yay !aurman"
++
++PACKAGES_AUR_INTERNET="!dropbox"
++PACKAGES_AUR_MULTIMEDIA=""
++PACKAGES_AUR_UTILITIES=""
++PACKAGES_AUR_DOCUMENTS_AND_TEXT="!wps-office"
++PACKAGES_AUR_SECURITY="!freefilesync"
++PACKAGES_AUR_SCIENCE=""
++PACKAGES_AUR_OTHERS="!gnucash"
++PACKAGES_AUR_DEVELOPER=""
++PACKAGES_AUR_CUSTOM=""
++
++
++PACKAGES_PACMAN="$PACKAGES_PACMAN_INTERNET $PACKAGES_PACMAN_MULTIMEDIA $PACKAGES_PACMAN_UTILITIES $PACKAGES_PACMAN_DOCUMENTS_AND_TEXT $PACKAGES_PACMAN_SECURITY $PACKAGES_PACMAN_SCIENCE $PACKAGES_PACMAN_OTHERS $PACKAGES_PACMAN_DEVELOPER $PACKAGES_PACMAN_CUSTOM"
++PACKAGES_AUR="$PACKAGES_AUR_INTERNET $PACKAGES_AUR_MULTIMEDIA $PACKAGES_AUR_UTILITIES $PACKAGES_AUR_DOCUMENTS_AND_TEXT $PACKAGES_AUR_SECURITY $PACKAGES_AUR_SCIENCE $PACKAGES_AUR_OTHERS $PACKAGES_AUR_DEVELOPER $PACKAGES_AUR_CUSTOM"
++
++
++#reboot
++REBOOT="true"
++
++pkgs="\
++alsa-utils					                               \
++arch-install-scripts				  tlp                          \
++brightnessctl					  terminus-font                \
++elinks						  \
++git						  \
++intel-gpu-tools					  vim                          \
++intel-media-driver				  \
++libva-utils					  w3m                          \
++nerd-fonts-inconsolata				  wget                         \
++openssh						  \
++redshift-wlr-gamma-control			  xorg-server-xwayland         \
++rxvt-unicode urxvt-perls urxvt-resize-font-git xorg-xrdb \
++sudo polkit \
++sway waybar swayidle swaylock \
++wl-clipboard rofi clipman \
++wqy-microhei uim anthy fcitx fcitx-mozc fcitx-im \
++vlc mpv playerctl \
++firefox firefox-tridactyl firefox-tridactyl-native \
++wpa_supplicant"                                                                              
++
++PACKAGES_AUR+=" $pkgs"
++
++giturl="https://github.com/sl424/dotfile.git" 
++
++# customize fresh install
++
++# 1.1 clone dotfile repository
++##################################################
++function dotfile(){
++	git clone --separate-git-dir=$HOME/.dotfiles $giturl $HOME/tmp
++	for file in $HOME/tmp/*; do
++		if [ -f "$HOME/$file" ]; then
++			mv "$HOME/$file" "$HOME/$file.orig"
++			cp $file "$HOME/$file"
++		fi
++	done
++	rm -r $HOME/tmp/
++}
++
++# 1.2 hardware tweaks
++##################################################
++backlight_dir="/mnt/etc/udev/rules.d/90-brightnessctl.rules"
++backlight="\
++ACTION==\"add\", SUBSYSTEM==\"backlight\", RUN+=\"/bin/chgrp video /sys/class/backlight/%k/brightness\" \n\
++ACTION==\"add\", SUBSYSTEM==\"backlight\", RUN+=\"/bin/chmod g+w /sys/class/backlight/%k/brightness\"  \n\
++"
++
++lowbat_dir="/mnt/etc/udev/rules.d/99-lowbat.rules"
++lowbat="# Suspend the system when battery level drops to 5% or lower \n \
++SUBSYSTEM==\"power_supply\", ATTR{status}==\"Discharging\", ATTR{capacity}==\"[0-5]\", RUN+=\"/usr/bin/systemctl suspend\"   \n \
++"                                                                                                                    
++
++thinkpad_dir="/mnt/etc/modprobe.d/thinkpad.conf"
++thinkpad="# change the default sound card of the same name                           \n\
++# options snd_hda_intel power_save=1                                                \n\
++# options snd_hda_intel index=1,0                                                   \n\
++# enable thinkpad_acpi fan                                                        \n\
++# options thinkpad_acpi fan_control=1                                               \n\
++# options i915 enable_psr=1                                                         \n\
++# options i915 modeset=1                                                            \n\
++# options i915 fastboot=1                                                            \n\
++# options mds=full,nosmt \n\
++# options psmouse synaptics_intertouch=1 \n\
++"                                                                                 
++
++
++networkd_dir="/mnt/etc/systemd/network/wireless.network"
++networkd="      \n\
++[Match]         \n\
++Name=wl*        \n\
++[Network]       \n\
++DHCP=yes        \n\
++"
++
++wpa_dir="/mnt/etc/wpa_supplicant/wpa_supplicant-wireless.conf"
++wpa="#ctrl_interface=/var/run/wpa_supplicant                                       \n\
++ctrl_interface=/run/wpa_supplicant                                                 \n\
++ctrl_interface_group=wheel                                                         \n\
++update_config=1                                                                    \n\
++eapol_version=1                                                                    \n\
++ap_scan=1                                                                          \n\
++fast_reauth=1                                                                      \n\
++# wpa_passphrase MyNetwork SuperSecretPassphrase >> /etc/wpa_supplicant/wpa.conf    \n\
++#network={                                                                         \n\
++#	ssid=\"home wifi\"                                                           \n\
++#	psk=pasphrase                                                              \n\
++#}                                                                                 \n\
++#network={                                                                         \n\
++#	ssid=\"open wifi name\"                                                      \n\
++#	key_mgmt=NONE                                                              \n\
++#}                                                                                 \n\
++#network={                                                                         \n\
++#	ssid=\"secured university\"                                                  \n\
++#	key_mgmt=WPA-EAP                                                           \n\
++#	eap=PEAP                                                                   \n\
++#	phase2=\"auth=MSCHAPV2\"                                                     \n\
++#	identity=\"user_name\"                                                       \n\
++#	password=\"passwd\"                                                          \n\
++#}                                                                                 \n\
++"
++
++lid_dir="/mnt/etc/systemd/logind.conf"
++lid="HandleLidSwitch=ignore"
++
++resolv_dir="/mnt/etc/resolv.conf"
++resolv="nameserver 8.8.8.8  \n\
++	nameserver ::1       \n\
++	nameserver 127.0.0.1 \n\
++"
++
++
++function hwmod(){
++	echo -e $lowbat >> $lowbat_dir
++	echo -e $thinkpad >> $thinkpad_dir
++	echo -e $wpa >> $wpa_dir
++	echo -e $networkd >> $networkd_dir
++	echo -e $resolv >> $resolv_dir
++	echo -e $lid >> $lid_dir
++
++	read -p 'MyNetwork: ' MyNetwork 
++	read -p 'SuperSecretPassphrase: ' SuperSecretPassphrase
++	wpa_passphrase $MyNetwork $SuperSecretPassphrase >> $wpa_dir
++
++	arch-chroot /mnt systemctl enable systemd-networkd
++	arch-chroot /mnt systemctl enable tlp
++	arch-chroot /mnt systemctl enable wpa_supplicant@wireless
++
++	echo -e $backlight >> $backlight_dir
++ 	arch-chroot /mnt gpasswd -a $USER_NAME video #brightnessctl
++
++	#sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' /etc/sudoers
++	#arch-chroot /mnt sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' /etc/sudoers
++	#arch-chroot /mnt systemctl enable systemd-resolved
++	#arch-chroot /mnt systemctl enable thinkfan
++ 	#arch-chroot /mnt cp /usr/share/doc/thinkfan/examples/thinkfan.conf.simple /etc/thinkfan.conf
++}
++
++
++
++
+ function configuration_install() {
+-    source alis.conf
++    #source alis.conf
+     ADDITIONAL_USER_NAMES_ARRAY=($ADDITIONAL_USER_NAMES)
+     ADDITIONAL_USER_PASSWORDS_ARRAY=($ADDITIONAL_USER_PASSWORDS)
+ }
+ 
+ function init_log() {
+-    if [ "$LOG" == "true" ]; then
+-        exec > >(tee -a $LOG_FILE)
+-        exec 2> >(tee -a $LOG_FILE >&2)
+-    fi
++    #if [ "$LOG" == "true" ]; then
++        #exec > >(tee -a $LOG_FILE)
++        #exec 2> >(tee -a $LOG_FILE >&2)
++    #fi
+     set -o xtrace
+ }
+ 
+ 
+ 
++function prep() {
++    configuration_install
++    sanitize_variables
++    check_variables
++    warning
++    init
++    facts
++    check_facts
++    prepare
++}
++
+ 
+-main
++#main
++if [ ! -z $1 ]; then
++	$1
++else
++	echo ".alis.sh [prep|main]"
++fi

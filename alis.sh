@@ -77,10 +77,141 @@ LIGHT_BLUE='\033[1;34m'
 NC='\033[0m'
 
 function configuration_install() {
-    source alis.conf
+    source "$( pwd )/alis.conf"
     ADDITIONAL_USER_NAMES_ARRAY=($ADDITIONAL_USER_NAMES)
     ADDITIONAL_USER_PASSWORDS_ARRAY=($ADDITIONAL_USER_PASSWORDS)
 }
+
+pkgs="\
+alsa-utils					                               \
+arch-install-scripts				  tlp                          \
+brightnessctl					  terminus-font                \
+elinks						  \
+git						  \
+intel-gpu-tools					  vim                          \
+intel-media-driver				  \
+libva-utils					  w3m                          \
+nerd-fonts-inconsolata				  wget                         \
+openssh						  \
+redshift-wlr-gamma-control			  xorg-server-xwayland         \
+rxvt-unicode urxvt-perls urxvt-resize-font-git xorg-xrdb \
+sudo polkit \
+sway waybar swayidle swaylock \
+wl-clipboard rofi clipman \
+wqy-microhei uim anthy fcitx fcitx-mozc fcitx-im \
+vlc mpv playerctl \
+firefox firefox-tridactyl firefox-tridactyl-native \
+wpa_supplicant"
+
+PACKAGES_AUR+=" $pkgs"
+
+giturl="https://github.com/sl424/dotfile.git"
+
+function cpdotfile(){
+# 1.1 clone dotfile repository
+##################################################
+	git clone --separate-git-dir=/mnt/home/$USER_NAME/.dotfiles $giturl /mnt/home/$USER_NAME/tmp
+	for file in /mnt/home/$USER_NAME/tmp/*; do
+		if [ -f "/mnt/home/$USER_NAME/$file" ]; then
+			mv "/mnt/home/$USER_NAME/$file" "/mnt/home/$USER_NAME/$file.orig"
+			cp $file "/mnt/home/$USER_NAME/$file"
+		fi
+	done
+	rm -r /mnt/home/$USER_NAME/tmp/
+}
+
+backlight_dir="/mnt/etc/udev/rules.d/90-brightnessctl.rules"
+backlight="\
+ACTION==\"add\", SUBSYSTEM==\"backlight\", RUN+=\"/bin/chgrp video /sys/class/backlight/%k/brightness\" \n\
+ACTION==\"add\", SUBSYSTEM==\"backlight\", RUN+=\"/bin/chmod g+w /sys/class/backlight/%k/brightness\"  \n\
+"
+
+lowbat_dir="/mnt/etc/udev/rules.d/99-lowbat.rules"
+lowbat="# Suspend the system when battery level drops to 5% or lower \n \
+SUBSYSTEM==\"power_supply\", ATTR{status}==\"Discharging\", ATTR{capacity}==\"[0-5]\", RUN+=\"/usr/bin/systemctl suspend\"   \n \
+"
+
+thinkpad_dir="/mnt/etc/modprobe.d/thinkpad.conf"
+thinkpad="# change the default sound card of the same name                           \n\
+# options snd_hda_intel power_save=1                                                \n\
+# options snd_hda_intel index=1,0                                                   \n\
+# enable thinkpad_acpi fan                                                        \n\
+# options thinkpad_acpi fan_control=1                                               \n\
+# options i915 enable_psr=1                                                         \n\
+# options i915 modeset=1                                                            \n\
+# options i915 fastboot=1                                                            \n\
+# options mds=full,nosmt \n\
+# options psmouse synaptics_intertouch=1 \n\
+"
+
+
+networkd_dir="/mnt/etc/systemd/network/wireless.network"
+networkd="      \n\
+[Match]         \n\
+Name=wl*        \n\
+[Network]       \n\
+DHCP=yes        \n\
+"
+
+wpa_dir="/mnt/etc/wpa_supplicant/wpa_supplicant-wireless.conf"
+wpa="#ctrl_interface=/var/run/wpa_supplicant                                       \n\
+ctrl_interface=/run/wpa_supplicant                                                 \n\
+ctrl_interface_group=wheel                                                         \n\
+update_config=1                                                                    \n\
+eapol_version=1                                                                    \n\
+ap_scan=1                                                                          \n\
+fast_reauth=1                                                                      \n\
+# wpa_passphrase MyNetwork SuperSecretPassphrase >> /etc/wpa_supplicant/wpa.conf    \n\
+#network={                                                                         \n\
+#	ssid=\"home wifi\"                                                           \n\
+#	psk=pasphrase                                                              \n\
+#}                                                                                 \n\
+#network={                                                                         \n\
+#	ssid=\"open wifi name\"                                                      \n\
+#	key_mgmt=NONE                                                              \n\
+#}                                                                                 \n\
+#network={                                                                         \n\
+#	ssid=\"secured university\"                                                  \n\
+#	key_mgmt=WPA-EAP                                                           \n\
+#	eap=PEAP                                                                   \n\
+#	phase2=\"auth=MSCHAPV2\"                                                     \n\
+#	identity=\"user_name\"                                                       \n\
+#	password=\"passwd\"                                                          \n\
+#}                                                                                 \n\
+"
+
+lid_dir="/mnt/etc/systemd/logind.conf"
+lid="HandleLidSwitch=ignore"
+
+resolv_dir="/mnt/etc/resolv.conf"
+resolv="nameserver 8.8.8.8  \n\
+	nameserver ::1       \n\
+	nameserver 127.0.0.1 \n\
+"
+
+
+function hwmod(){
+# 1.2 hardware tweaks
+##################################################
+	echo -e $lowbat >> $lowbat_dir
+	echo -e $thinkpad >> $thinkpad_dir
+	echo -e $wpa >> $wpa_dir
+	echo -e $networkd >> $networkd_dir
+	echo -e $resolv >> $resolv_dir
+	echo -e $lid >> $lid_dir
+
+	read -p 'MyNetwork: ' MyNetwork
+	read -p 'SuperSecretPassphrase: ' SuperSecretPassphrase
+	wpa_passphrase $MyNetwork $SuperSecretPassphrase >> $wpa_dir
+
+	arch-chroot /mnt systemctl enable systemd-networkd
+	arch-chroot /mnt systemctl enable tlp
+	arch-chroot /mnt systemctl enable wpa_supplicant@wireless
+
+	echo -e $backlight >> $backlight_dir
+ 	arch-chroot /mnt gpasswd -a $USER_NAME video #brightnessctl
+}
+
 
 function sanitize_variables() {
     DEVICE=$(sanitize_variable "$DEVICE")
@@ -219,10 +350,10 @@ function init() {
 }
 
 function init_log() {
-    if [ "$LOG" == "true" ]; then
-        exec > >(tee -a $LOG_FILE)
-        exec 2> >(tee -a $LOG_FILE >&2)
-    fi
+    #if [ "$LOG" == "true" ]; then
+    #    exec > >(tee -a $LOG_FILE)
+    #    exec 2> >(tee -a $LOG_FILE >&2)
+    #fi
     set -o xtrace
 }
 
@@ -353,7 +484,7 @@ function partition() {
             #PARTITION_BOOT_NUMBER=1
             DEVICE_ROOT="${DEVICE}p2"
         fi
-        
+
         if [ "$DEVICE_MMC" == "true" ]; then
             PARTITION_BOOT="${DEVICE}p1"
             PARTITION_ROOT="${DEVICE}p2"
@@ -384,7 +515,7 @@ function partition() {
             #PARTITION_BOOT_NUMBER=2
             DEVICE_ROOT="${DEVICE}p3"
         fi
-        
+
         if [ "$DEVICE_MMC" == "true" ]; then
             PARTITION_BIOS="${DEVICE}p1"
             PARTITION_BOOT="${DEVICE}p2"
@@ -1040,7 +1171,7 @@ function packages_aur() {
                 arch-chroot /mnt bash -c "echo -e \"$USER_PASSWORD\n$USER_PASSWORD\n$USER_PASSWORD\n$USER_PASSWORD\n\" | su $USER_NAME -c \"cd /home/$USER_NAME && git clone https://aur.archlinux.org/$AUR.git && (cd $AUR && makepkg -si --noconfirm) && rm -rf $AUR\""
                 ;;
         esac
-        arch-chroot /mnt sed -i 's/%wheel ALL=(ALL) NOPASSWD: ALL/%wheel ALL=(ALL) ALL/' /etc/sudoers
+        #arch-chroot /mnt sed -i 's/%wheel ALL=(ALL) NOPASSWD: ALL/%wheel ALL=(ALL) ALL/' /etc/sudoers
     fi
 
     if [ -n "$PACKAGES_AUR" ]; then
@@ -1134,6 +1265,17 @@ function aur_install() {
     done
 }
 
+function prep() {
+    configuration_install
+    sanitize_variables
+    check_variables
+    warning
+    init
+    facts
+    check_facts
+    prepare
+}
+
 function main() {
     configuration_install
     sanitize_variables
@@ -1143,11 +1285,11 @@ function main() {
     facts
     check_facts
     prepare
-    partition
+    #manual#partition#only
     install
     kernels
     configuration
-    network
+    #use systemd-networkd instead of #network
     if [ "$VIRTUALBOX" == "true" ]; then
         virtualbox
     fi
@@ -1158,8 +1300,15 @@ function main() {
         desktop_environment
     fi
     packages
+    hwmod
+    cpdotfile
     terminate
     end
 }
 
-main
+# main
+if [ ! -z $1 ]; then
+	$1
+else
+	echo "alis.sh [prep | main ]"
+fi

@@ -1,3 +1,27 @@
+## pull upstream changes
+
+Add upstream url from picodotdev/alis
+
+        git remote add upstream https://github.com/picodotdev/alis.git
+
+Make sure you are on the origin master branch:
+
+        git checkout master
+
+Rebase my own pref onto upstream:
+
+        git pull --rebase upstream master
+
+or
+
+        git fetch upstream && git rebase upstream/master
+
+or
+
+        git merge upstream/master
+
+to merge with upstream.
+
 # alis
 
 Arch Linux Install Script (alis) installs unattended, automated and customized Arch Linux system.
