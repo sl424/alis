@@ -50,8 +50,8 @@ LVM_DEVICE=""
 LVM_VOLUME_PHISICAL="lvm"
 LVM_VOLUME_GROUP="vg"
 LVM_VOLUME_LOGICAL="root"
-BOOT_DIRECTORY=""
-ESP_DIRECTORY=""
+BOOT_DIRECTORY="/boot"
+ESP_DIRECTORY="/boot"
 #PARTITION_BOOT_NUMBER=0
 UUID_BOOT=""
 UUID_ROOT=""
@@ -161,23 +161,19 @@ update_config=1                                                                 
 eapol_version=1                                                                    \n\
 ap_scan=1                                                                          \n\
 fast_reauth=1                                                                      \n\
-# wpa_passphrase MyNetwork SuperSecretPassphrase >> /etc/wpa_supplicant/wpa.conf    \n\
 #network={                                                                         \n\
-#	ssid=\"home wifi\"                                                           \n\
-#	psk=pasphrase                                                              \n\
-#}                                                                                 \n\
+#	ssid=\"home wifi\"                                                         \n\
+#	psk=pasphrase}                                                             \n\
 #network={                                                                         \n\
-#	ssid=\"open wifi name\"                                                      \n\
-#	key_mgmt=NONE                                                              \n\
-#}                                                                                 \n\
+#	ssid=\"open wifi\"                                                         \n\
+#	key_mgmt=NONE}                                                             \n\
 #network={                                                                         \n\
-#	ssid=\"secured university\"                                                  \n\
+#	ssid=\"secured wifi\"                                                      \n\
 #	key_mgmt=WPA-EAP                                                           \n\
 #	eap=PEAP                                                                   \n\
-#	phase2=\"auth=MSCHAPV2\"                                                     \n\
-#	identity=\"user_name\"                                                       \n\
-#	password=\"passwd\"                                                          \n\
-#}                                                                                 \n\
+#	phase2=\"auth=MSCHAPV2\"                                                   \n\
+#	identity=\"user_name\"                                                     \n\
+#	password=\"passwd\"}                                                       \n\
 "
 
 lid_dir="/mnt/etc/systemd/logind.conf"
@@ -193,16 +189,16 @@ resolv="nameserver 8.8.8.8  \n\
 function hwmod(){
 # 1.2 hardware tweaks
 ##################################################
+	read -p 'MyNetwork: ' MyNetwork
+	read -p 'SuperSecretPassphrase: ' SuperSecretPassphrase
+	wpa_passphrase $MyNetwork $SuperSecretPassphrase >> $wpa_dir
+
 	echo -e $lowbat >> $lowbat_dir
 	echo -e $thinkpad >> $thinkpad_dir
 	echo -e $wpa >> $wpa_dir
 	echo -e $networkd >> $networkd_dir
 	echo -e $resolv >> $resolv_dir
 	echo -e $lid >> $lid_dir
-
-	read -p 'MyNetwork: ' MyNetwork
-	read -p 'SuperSecretPassphrase: ' SuperSecretPassphrase
-	wpa_passphrase $MyNetwork $SuperSecretPassphrase >> $wpa_dir
 
 	arch-chroot /mnt systemctl enable systemd-networkd
 	arch-chroot /mnt systemctl enable tlp
@@ -886,6 +882,7 @@ function systemd() {
     echo "timeout 5" >> "/mnt$ESP_DIRECTORY/loader/loader.conf"
     echo "default archlinux" >> "/mnt$ESP_DIRECTORY/loader/loader.conf"
     echo "editor 0" >> "/mnt$ESP_DIRECTORY/loader/loader.conf"
+    echo "console-mode max" >> "/mnt$ESP_DIRECTORY/loader/loader.conf"
 
     arch-chroot /mnt mkdir -p "/etc/pacman.d/hooks/"
 
