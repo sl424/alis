@@ -84,7 +84,7 @@ function configuration_install() {
 
 pkgs="\
 alsa-utils					                               \
-arch-install-scripts				  tlp                          \
+arch-install-scripts				  \
 brightnessctl					  terminus-font                \
 elinks						  \
 git						  \
@@ -101,23 +101,21 @@ wl-clipboard rofi clipman \
 wqy-microhei uim anthy fcitx fcitx-mozc fcitx-im \
 vlc mpv playerctl \
 firefox firefox-tridactyl firefox-tridactyl-native \
+tlp powertop \
 wpa_supplicant"
 
 PACKAGES_AUR+=" $pkgs"
 
-giturl="https://github.com/sl424/dotfile.git"
 
 function cpdotfile(){
 # 1.1 clone dotfile repository
 ##################################################
-	git clone --separate-git-dir=/mnt/home/$USER_NAME/.dotfiles $giturl /mnt/home/$USER_NAME/tmp
-	for file in /mnt/home/$USER_NAME/tmp/*; do
-		if [ -f "/mnt/home/$USER_NAME/$file" ]; then
-			mv "/mnt/home/$USER_NAME/$file" "/mnt/home/$USER_NAME/$file.orig"
-			cp $file "/mnt/home/$USER_NAME/$file"
-		fi
-	done
-	rm -r /mnt/home/$USER_NAME/tmp/
+        #arch-chroot /mnt bash -c "su $USER_NAME -c \" \" "
+
+	giturl="https://github.com/sl424/dotfile.git"
+	homedir=/mnt/home/$USER_NAME
+        arch-chroot /mnt bash -c "su $USER_NAME -c \" git clone --separate-git-dir=$homedir/.dotfiles $giturl $homedir/tmp \" "
+        arch-chroot /mnt bash -c "su $USER_NAME -c \" cd $homedir/tmp; for file in .*; do if [ -f $file ]; then cp -r $file $homedir/$file; fi; done \" "
 }
 
 backlight_dir="/mnt/etc/udev/rules.d/90-brightnessctl.rules"
@@ -153,7 +151,7 @@ Name=wl*        \n\
 DHCP=yes        \n\
 "
 
-wpa_dir="/mnt/etc/wpa_supplicant/wpa_supplicant-wireless.conf"
+wpa_dir="/mnt/etc/wpa_supplicant/wpa_supplicant-$WIFI_INTERFACE.conf"
 wpa="#ctrl_interface=/var/run/wpa_supplicant                                       \n\
 ctrl_interface=/run/wpa_supplicant                                                 \n\
 ctrl_interface_group=wheel                                                         \n\
@@ -202,7 +200,7 @@ function hwmod(){
 
 	arch-chroot /mnt systemctl enable systemd-networkd
 	arch-chroot /mnt systemctl enable tlp
-	arch-chroot /mnt systemctl enable wpa_supplicant@wireless
+	arch-chroot /mnt systemctl enable "wpa_supplicant@$WIFI_INTERFACE"
 
 	echo -e $backlight >> $backlight_dir
  	arch-chroot /mnt gpasswd -a $USER_NAME video #brightnessctl
@@ -385,6 +383,8 @@ function facts() {
         CPU_INTEL="true"
     fi
 
+    # lspci issue with nouveau driver
+    rmmod nouveau
     if [ -n "$(lspci | grep -i virtualbox)" ]; then
         VIRTUALBOX="true"
     fi
@@ -586,6 +586,38 @@ function partition() {
     UUID_ROOT=$(blkid -s UUID -o value $PARTITION_ROOT)
     PARTUUID_BOOT=$(blkid -s PARTUUID -o value $PARTITION_BOOT)
     PARTUUID_ROOT=$(blkid -s PARTUUID -o value $PARTITION_ROOT)
+}
+
+function manual_partition() {
+
+    lsblk
+    read -p 'root partition: ' ROOT
+    read -p 'boot partition: ' BOOT
+
+    PARTITION_OPTIONS=""
+
+    if [ "$DEVICE_TRIM" == "true" ]; then
+        PARTITION_OPTIONS="defaults,noatime"
+    fi
+
+    mount -o "$PARTITION_OPTIONS" "$ROOT" /mnt
+
+    mkdir /mnt/boot
+    mount -o "$PARTITION_OPTIONS" "$BOOT" /mnt/boot
+
+    if [ -n "$SWAP_SIZE" -a "$FILE_SYSTEM_TYPE" != "btrfs" ]; then
+        fallocate -l $SWAP_SIZE /mnt/swap
+        chmod 600 /mnt/swap
+        mkswap /mnt/swap
+    fi
+
+    BOOT_DIRECTORY=/boot
+    ESP_DIRECTORY=/boot
+    UUID_BOOT=$(blkid -s UUID -o value $BOOT)
+    UUID_ROOT=$(blkid -s UUID -o value $ROOT)
+    PARTUUID_BOOT=$(blkid -s PARTUUID -o value $BOOT)
+    PARTUUID_ROOT=$(blkid -s PARTUUID -o value $ROOT)
+
 }
 
 function install() {
@@ -1283,6 +1315,7 @@ function main() {
     check_facts
     prepare
     #manual#partition#only
+    manual_partition
     install
     kernels
     configuration
