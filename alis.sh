@@ -94,7 +94,7 @@ libva-utils					  w3m                          \
 nerd-fonts-inconsolata				  wget                         \
 openssh						  \
 redshift-wlr-gamma-control			  xorg-server-xwayland         \
-rxvt-unicode urxvt-perls urxvt-resize-font-git xorg-xrdb \
+rxvt-unicode urxvt-perls urxvt-resize-font-git \
 sudo polkit \
 sway waybar swayidle swaylock \
 wl-clipboard rofi clipman \
@@ -102,6 +102,7 @@ wqy-microhei uim anthy fcitx fcitx-mozc fcitx-im \
 vlc mpv playerctl \
 firefox firefox-tridactyl firefox-tridactyl-native \
 tlp powertop \
+zathura zathura-pdf-poppler \
 wpa_supplicant"
 
 PACKAGES_AUR+=" $pkgs"
