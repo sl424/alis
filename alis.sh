@@ -128,6 +128,12 @@ ACTION==\"add\", SUBSYSTEM==\"backlight\", RUN+=\"/bin/chmod g+w /sys/class/back
 lowbat_dir="/mnt/etc/udev/rules.d/99-lowbat.rules"
 lowbat="# Suspend the system when battery level drops to 5% or lower \n \
 SUBSYSTEM==\"power_supply\", ATTR{status}==\"Discharging\", ATTR{capacity}==\"[0-5]\", RUN+=\"/usr/bin/systemctl suspend\"   \n \
+# PCI runtime power management \n\
+ACTION=="add", SUBSYSTEM=="pci", ATTR{power/control}="auto" \n\
+# USB autosuspend \n\
+ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control" ATTR{power/control}="auto" \n\
+# SATA active link power management \n\
+ACTION=="add", SUBSYSTEM=="scsi_host", KERNEL=="host*", ATTR{link_power_management_policy}="med_power_with_dipm" \n\
 "
 
 thinkpad_dir="/mnt/etc/modprobe.d/thinkpad.conf"
